@@ -1,8 +1,10 @@
-if [[ `whoami` != root ]]; then
-	echo hey! run this as root.
-	exit
-fi
+#!/bin/bash
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+NC='\033[0m'
+distro=0
 
+setup_base(){
 mkdir -p tarballs
 
 if [[ ! -e tarballs/ArchLinuxARM-aarch64-latest.tar.gz ]]; then
@@ -45,9 +47,93 @@ echo -e "/dev/mmcblk0p1	/mnt/hos_data	vfat	rw,relatime	0	2\n/boot /mnt/hos_data/
 mount --bind build build
 arch-chroot build ./build-stage2.sh
 umount build
+}
 
-cd build
-rm etc/pacman.d/gnupg/S.gpg-agent*
-mv arch-boot.tar.gz ..
-bsdtar -cz -f ../arch-root.tar.gz .
-cd ..
+package_build() {
+	umount build
+
+	cd build
+	rm etc/pacman.d/gnupg/S.gpg-agent*
+	if [ $1 -eq 1 ]; then	
+		mv arch-boot.tar.gz ..
+		bsdtar -cz -f ../arch-root.tar.gz .
+
+	elif [ $1 -eq 2 ]; then
+		mv arch-boot.tar.gz ../blackarch-boot.tar.gz
+		bsdtar -cz -f ../blackarch-root.tar.gz .
+
+	elif [ $1 -eq 3 ]; then
+		mv arch-boot.tar.gz ../manjaro-boot.tar.gz
+		bsdtar -cz -f ../manjaro-root.tar.gz .
+
+	elif [ $1 -eq 4 ]; then
+		mv arch-boot.tar.gz ../blackmanjaro-boot.tar.gz
+		bsdtar -cz -f blackmanjaro-root.tar.gz .
+	fi
+	cd ..
+}
+build_options() {
+	echo -e "##################################"
+	echo -e "#Choose Which ARCH Disto to Build#"
+	echo -e "##################################"
+	echo -e "#[1] - Arch Linux                #"
+	echo -e "#[2] - BlackArch Linux           #"
+	#echo -e "#[3] - Manjaro Linux             #"
+	#echo -e "#[4] - BlackArch-Manjaro Mix     #"
+	echo -e "#[0] - Exit                      #"
+	echo -e "##################################"
+	echo -e "Enter Choice: "
+	read distro
+}
+	
+
+add_blackarch(){
+	wget https://blackarch.org/strap.sh	
+	chmod +x strap.sh
+	mv strap.sh build/	
+	arch-chroot build ./strap.sh
+	arch-chroot build pacman -S blackarch
+}
+
+add_manjaro(){
+	echo -e "${RED}Manjaro Currently Not available.${NC}"
+	echo -e "This currently builds default ARCH for the Switch"
+}
+	
+if [[ `whoami` != root ]]; then
+	echo -e hey! run this as ${RED}root${NC}.
+	exit
+fi
+
+build_options
+distro=$((distro))
+
+if [ $distro -eq 0 ]; then
+	exit
+fi
+
+if [ $distro -gt 4 -o $distro -lt 1 ]; then
+	echo "Please choose an availble option"
+	build_options
+fi
+
+setup_base
+
+#Do extra stuff for Manjaro and Blackarch.
+if [[ $distro -gt 1 ]]; then
+	if [[ $distro == "2" ]]; then
+		add_blackarch
+	fi
+fi
+
+
+#elif [[ $distro == "3" ]]; then
+#	add_manjaro()	
+
+#elif [[ $distro == "4" ]]; then
+#	add_manjaro()
+#	add_blackarch() 	
+#fi
+#fi    
+
+package_build $distro
