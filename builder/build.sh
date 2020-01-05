@@ -1,3 +1,5 @@
+#!/usr/bin/bash
+
 if [[ `whoami` != root ]]; then
 	echo hey! run this as root.
 	exit
@@ -7,11 +9,6 @@ mkdir -p tarballs
 
 if [[ ! -e tarballs/ArchLinuxARM-aarch64-latest.tar.gz ]]; then
 	wget -O tarballs/ArchLinuxARM-aarch64-latest.tar.gz http://os.archlinuxarm.org/os/ArchLinuxARM-aarch64-latest.tar.gz
-fi
-
-if [[ ! -d 4.9.140+ ]]; then
-	echo modules not found, exiting
-	exit 0
 fi
 
 if [[ ! -e reboot_payload.bin ]]; then
@@ -32,7 +29,6 @@ cp reboot_payload.bin build/reboot_payload.bin
 
 bsdtar xf tarballs/ArchLinuxARM-aarch64-latest.tar.gz -C build
 mkdir -p build/usr/lib/modules
-cp -r 4.9.140+  build/usr/lib/modules
 cat << EOF >> build/etc/pacman.conf
 [switch]
 SigLevel = Optional
